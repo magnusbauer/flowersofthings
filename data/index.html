@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Flowers of things!</title>
+    <link href='https://fonts.googleapis.com/css?family=Roboto:300' rel='stylesheet' type='text/css'>
+    <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon.ico">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#00878f">
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport'>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <center>
+        <h1>Flowers of things!</h1>
+		<div id="chart_div"></div>
+		<div id="loading">Loading ...</div>
+        <div id="dateselect" style="visibility: hidden;">
+            <div id="date"></div>
+            <button id="prev">&lt;</button>
+            <button id="next">&gt;</button><br>
+            <button id="zoomout">-</button>
+            <button id="zoomin">+</button><br>
+            <button id="reset" style="width: 4.4em;">Reset</button><br>
+            <button id="refresh" style="width: 4.4em;">Refresh</button>
+        </div>
+        <br>
+                <input type="text" id="constduration"  value="" />
+              <button style="width: 4.4em;" onclick="setWaterDuration(document.getElementById('constduration').value)" id="testButton" >waiting period</button>
+
+<br>
+        <input type="text" id="waiting"  value="" />
+      <button style="width: 4.4em;" onclick="setWaiting(document.getElementById('waiting').value)" id="testButton" >waiting period</button>
+
+  <br>
+  <input type="text" id="humidity"  value="" />
+<button style="width: 4.4em;" onclick="setHumidity(document.getElementById('humidity').value)" id="testButton" >humidity limit</button>
+  <br>
+  <input type="text" id="duration"  value="" />
+<button style="width: 4.4em;" onclick="water(document.getElementById('duration').value)" id="testButton" >Water</button>
+
+
+    </center>
+
+    <script src="temperatureGraph.js"></script>
+
+    <style>
+	body {
+	    font-family: 'Roboto', sans-serif;
+	    font-size: 22pt;
+	    margin: 0;
+	    margin-top: 6px;
+	}
+
+	h1 {
+	    font-size: 1.5em;
+	    font-weight: normal;
+	    margin: 0px 0px 12px 0px;
+	}
+
+	button {
+	    font-size: 14pt;
+	    width: 2em;
+	}
+
+	center {
+	    padding: 1em;
+	    margin: auto;
+	    width: 90%;
+	    box-shadow: #777 2px 2px 5px;
+	    box-sizing: border-box;
+	}
+
+	#loading {
+		margin-bottom: 12px;
+	}
+
+	@media only screen and (max-device-width: 700px) {
+	    center {
+		width: 100%;
+		height: 100vh;
+		overflow: auto;
+	    }
+	}
+
+    </style>
+</body>
+<script>
+
+function setWaterDuration(input) {
+    // alert(input); //should output text box input
+
+//     var data = null;
+//
+//     var xhr = new XMLHttpRequest();
+//     xhr.withCredentials = true;
+//
+//     xhr.addEventListener("readystatechange", function () {
+//       if (this.readyState === 4) {
+//         console.log(this.responseText);
+//       }
+//     });
+// console.log(location.hostname);
+//     xhr.open("GET", "http://192.168.1.150/water?plant=1&duration=10");
+//     xhr.setRequestHeader("Cache-Control", "no-cache");
+//     xhr.setRequestHeader("Postman-Token", "5fd8a3c0-ca01-f59b-abc6-9db7710bbeb2");
+//
+//     xhr.send(data);
+
+var settings = {
+  "async": true,
+  "crossDomain": true,
+  "url": "http://192.168.1.150/setwaterduration?duration="+input,
+  "method": "GET",
+  "headers": {
+    "Cache-Control": "no-cache",
+    "Postman-Token": "deb904b1-a485-4656-f12c-569350e04154"
+  }
+}
+
+$.ajax(settings).done(function (response) {
+  console.log(response);
+});
+}
+
+function setWaiting(input) {
+    // alert(input); //should output text box input
+
+//     var data = null;
+//
+//     var xhr = new XMLHttpRequest();
+//     xhr.withCredentials = true;
+//
+//     xhr.addEventListener("readystatechange", function () {
+//       if (this.readyState === 4) {
+//         console.log(this.responseText);
+//       }
+//     });
+// console.log(location.hostname);
+//     xhr.open("GET", "http://192.168.1.150/water?plant=1&duration=10");
+//     xhr.setRequestHeader("Cache-Control", "no-cache");
+//     xhr.setRequestHeader("Postman-Token", "5fd8a3c0-ca01-f59b-abc6-9db7710bbeb2");
+//
+//     xhr.send(data);
+
+var settings = {
+  "async": true,
+  "crossDomain": true,
+  "url": "http://192.168.1.150/setwaiting?time="+input,
+  "method": "GET",
+  "headers": {
+    "Cache-Control": "no-cache",
+    "Postman-Token": "deb904b1-a485-4656-f12c-569350e04154"
+  }
+}
+
+$.ajax(settings).done(function (response) {
+  console.log(response);
+});
+}
+
+function setHumidity(input) {
+    // alert(input); //should output text box input
+
+//     var data = null;
+//
+//     var xhr = new XMLHttpRequest();
+//     xhr.withCredentials = true;
+//
+//     xhr.addEventListener("readystatechange", function () {
+//       if (this.readyState === 4) {
+//         console.log(this.responseText);
+//       }
+//     });
+// console.log(location.hostname);
+//     xhr.open("GET", "http://192.168.1.150/water?plant=1&duration=10");
+//     xhr.setRequestHeader("Cache-Control", "no-cache");
+//     xhr.setRequestHeader("Postman-Token", "5fd8a3c0-ca01-f59b-abc6-9db7710bbeb2");
+//
+//     xhr.send(data);
+
+var settings = {
+  "async": true,
+  "crossDomain": true,
+  "url": "http://192.168.1.150/sethumidity?humidity="+input,
+  "method": "GET",
+  "headers": {
+    "Cache-Control": "no-cache",
+    "Postman-Token": "deb904b1-a485-4656-f12c-569350e04154"
+  }
+}
+
+$.ajax(settings).done(function (response) {
+  console.log(response);
+});
+}
+
+function water(input) {
+    // alert(input); //should output text box input
+
+//     var data = null;
+//
+//     var xhr = new XMLHttpRequest();
+//     xhr.withCredentials = true;
+//
+//     xhr.addEventListener("readystatechange", function () {
+//       if (this.readyState === 4) {
+//         console.log(this.responseText);
+//       }
+//     });
+// console.log(location.hostname);
+//     xhr.open("GET", "http://192.168.1.150/water?plant=1&duration=10");
+//     xhr.setRequestHeader("Cache-Control", "no-cache");
+//     xhr.setRequestHeader("Postman-Token", "5fd8a3c0-ca01-f59b-abc6-9db7710bbeb2");
+//
+//     xhr.send(data);
+
+var settings = {
+  "async": true,
+  "crossDomain": true,
+  "url": "http://192.168.1.150/water?plant=1&duration="+input,
+  "method": "GET",
+  "headers": {
+    "Cache-Control": "no-cache",
+    "Postman-Token": "deb904b1-a485-4656-f12c-569350e04154"
+  }
+}
+
+$.ajax(settings).done(function (response) {
+  console.log(response);
+});
+}
+
+setInterval(autorefresh, 10000);
+
+function autorefresh(){
+console.log("autorefresh");
+viewportEndTime = new Date(); // the end time of the viewport is the current time
+loadCSV(); // download the latest data and re-draw the chart
+}
+</script>
+
+</html>
