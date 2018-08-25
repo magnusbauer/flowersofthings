@@ -89,6 +89,8 @@
     </style>
 </body>
 <script>
+var ip = location.host;
+console.log(ip);
 
 function setWaterDuration(input) {
     // alert(input); //should output text box input
@@ -113,7 +115,7 @@ function setWaterDuration(input) {
 var settings = {
   "async": true,
   "crossDomain": true,
-  "url": "http://192.168.1.150/setwaterduration?duration="+input,
+  "url": "http://"+ip+"/setwaterduration?duration="+input,
   "method": "GET",
   "headers": {
     "Cache-Control": "no-cache",
@@ -149,7 +151,7 @@ function setWaiting(input) {
 var settings = {
   "async": true,
   "crossDomain": true,
-  "url": "http://192.168.1.150/setwaiting?time="+input,
+  "url": "http://"+ip+"/setwaiting?time="+input,
   "method": "GET",
   "headers": {
     "Cache-Control": "no-cache",
@@ -185,7 +187,7 @@ function setHumidity(input) {
 var settings = {
   "async": true,
   "crossDomain": true,
-  "url": "http://192.168.1.150/sethumidity?humidity="+input,
+  "url": "http://"+ip+"/sethumidity?humidity="+input,
   "method": "GET",
   "headers": {
     "Cache-Control": "no-cache",
@@ -221,7 +223,7 @@ function water(input) {
 var settings = {
   "async": true,
   "crossDomain": true,
-  "url": "http://192.168.1.150/water?plant=1&duration="+input,
+  "url": "http://"+ip+"/water?plant=1&duration="+input,
   "method": "GET",
   "headers": {
     "Cache-Control": "no-cache",
