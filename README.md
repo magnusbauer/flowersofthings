@@ -10,7 +10,7 @@ Controller for watering your plants powered by an ESP8266. Controlls soil humidi
 
 
 
-Schematic setup:
+Schematic diagram:
 <p align="center">
   <img src="images/schematic.png"
        alt="schematic build up" width="800"/>
