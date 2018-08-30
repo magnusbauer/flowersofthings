@@ -29,18 +29,19 @@
         </div>
         <br>
                 <input type="text" id="constduration"  value="" />
-              <button style="width: 4.4em;" onclick="setWaterDuration(document.getElementById('constduration').value)" id="testButton" >waiting period</button>
+              <button style="width: 9.4em;" onclick="setWaterDuration(document.getElementById('constduration').value)" id="testButton" >set water duration</button>
 
 <br>
         <input type="text" id="waiting"  value="" />
-      <button style="width: 4.4em;" onclick="setWaiting(document.getElementById('waiting').value)" id="testButton" >waiting period</button>
+      <button style="width: 9.4em;" onclick="setWaiting(document.getElementById('waiting').value)" id="testButton" >set waiting period</button>
 
   <br>
   <input type="text" id="humidity"  value="" />
-<button style="width: 4.4em;" onclick="setHumidity(document.getElementById('humidity').value)" id="testButton" >humidity limit</button>
+<button style="width: 9.4em;" onclick="setHumidity(document.getElementById('humidity').value)" id="testButton" >set humidity limit</button>
   <br>
+  <input type="text" id="plant"  value="" />
   <input type="text" id="duration"  value="" />
-<button style="width: 4.4em;" onclick="water(document.getElementById('duration').value)" id="testButton" >Water</button>
+<button style="width: 11.4em;" onclick="water(document.getElementById('plant').value,document.getElementById('duration').value)" id="testButton" >water plants manually</button>
 
 
     </center>
@@ -200,7 +201,7 @@ $.ajax(settings).done(function (response) {
 });
 }
 
-function water(input) {
+function water(input1,input2) {
     // alert(input); //should output text box input
 
 //     var data = null;
@@ -223,7 +224,7 @@ function water(input) {
 var settings = {
   "async": true,
   "crossDomain": true,
-  "url": "http://"+ip+"/water?plant=1&duration="+input,
+  "url": "http://"+ip+"/water?plant="+input1+"&duration="+input2,
   "method": "GET",
   "headers": {
     "Cache-Control": "no-cache",

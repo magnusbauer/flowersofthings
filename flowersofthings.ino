@@ -1,3 +1,5 @@
+
+/*__________________________________________________________Libraries__________________________________________________________*/
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <WiFiUdp.h>
@@ -6,20 +8,23 @@
 #include <ESP8266mDNS.h>
 #include <FS.h>
 #include <pins_arduino.h>
+#include <ArduinoJson.h>
 
+/*__________________________________________________________General_things__________________________________________________________*/
 #define ONE_HOUR 3600000UL
+
 
 #include "DHT.h"
 #define DHTPIN 4     // what digital pin the DHT22 is conected to
 #define DHTTYPE DHT22   // there are multiple kinds of DHT sensors
 DHT dht(DHTPIN, DHTTYPE);
-float h = 0;
-float t = 0;
+float h = 0;  // variable for air humidity
+float t = 0; // variable for air temperature
 
-int humiditylimit = 750;
-int waterduration = 10;
-int waitingtime = 30; //5 minuten
-uint32_t lastwater = 0;
+int humiditylimit = 750;  // soil humidity threshold - when to water
+int waterduration = 10; // how long should one watering period last
+int waitingtime = 30; // how long should be waited after one watering
+uint32_t lastwater = 0; // saves the timestamp of the last watering
 
 ESP8266WebServer server(80);             // create a web server on port 80
 
@@ -41,34 +46,83 @@ const int NTP_PACKET_SIZE = 48;          // NTP time stamp is in the first 48 by
 
 byte packetBuffer[NTP_PACKET_SIZE];      // A buffer to hold incoming and outgoing packets
 
+
+/*__________________________________________________________Config_file__________________________________________________________*/
+bool loadConfig() {
+  File configFile = SPIFFS.open("/config.json", "r");
+  if (!configFile) {
+    Serial.println("Failed to open config file");
+    return false;
+  }
+
+  size_t size = configFile.size();
+  if (size > 1024) {
+    Serial.println("Config file size is too large");
+    return false;
+  }
+
+  // Allocate a buffer to store contents of the file.
+  std::unique_ptr<char[]> buf(new char[size]);
+
+  // We don't use String here because ArduinoJson library requires the input
+  // buffer to be mutable. If you don't use ArduinoJson, you may as well
+  // use configFile.readString instead.
+  configFile.readBytes(buf.get(), size);
+
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& json = jsonBuffer.parseObject(buf.get());
+
+  if (!json.success()) {
+    Serial.println("Failed to parse config file");
+    return false;
+  }
+  
+  const String hl = json["humiditylimit"];
+  humiditylimit = hl.toInt();
+  
+ const String wd = json["waterduration"];
+  waterduration = wd.toInt();
+
+const String wt = json["waitingtime"];
+  waitingtime = wt.toInt();
+
+const String lw = json["lastwater"];
+  lastwater = lw.toInt();
+
+  
+  // Real world application would store these values in some variables for
+  // later use.
+Serial.println("values in config.json");
+  Serial.println(humiditylimit);
+  Serial.println(waterduration);
+  Serial.println(waitingtime);
+  Serial.println(lastwater);
+  return true;
+}
+
 /*__________________________________________________________SETUP__________________________________________________________*/
 
 void setup() {
   Serial.begin(115200);        // Start the Serial communication to send messages to the computer
   delay(10);
   Serial.println("\r\n");
-  dht.begin();
-  pinMode(D1, OUTPUT);
-  //tempSensors.setWaitForConversion(false); // Don't block the program while the temperature sensor is reading
-  //tempSensors.begin();                     // Start the temperature sensor
-
-  //if (tempSensors.getDeviceCount() == 0) {
-  //  Serial.printf("No DS18x20 temperature sensor found on pin %d. Rebooting.\r\n", TEMP_SENSOR_PIN);
-  //  Serial.flush();
-  //  ESP.reset();
-  //}
+  
+  dht.begin(); // initalize DHT
+  pinMode(D1, OUTPUT); // initialize pin for pump
 
   startWiFi();                 // Start a Wi-Fi access point, and try to connect to some given access points. Then wait for either an AP or STA connection
 
-  //startOTA();                  // Start the OTA service
+  startOTA();                  // Start the OTA service
 
   startSPIFFS();               // Start the SPIFFS and list all contents
 
-  //startMDNS();                 // Start the mDNS responder
+  startMDNS();                 // Start the mDNS responder
 
   startServer();               // Start a HTTP server with a file read handler and an upload handler
 
   startUDP();                  // Start listening for UDP messages to port 123
+
+  
 
   WiFi.hostByName(ntpServerName, timeServerIP); // Get the IP address of the NTP server
   Serial.print("Time server IP:\t");
@@ -122,7 +176,7 @@ void loop() {
       //tempSensors.requestTemperatures(); // Request the temperature from the sensor (it takes some time to read it)
       tmpRequested = true;
       prevTemp = currentMillis;
-      Serial.println("Temperature requested");
+      //Serial.println("Temperature requested");
     }
     if (currentMillis - prevTemp > DS_delay && tmpRequested) { // 750 ms after requesting the temperature
       uint32_t actualTime = timeUNIX + (currentMillis - lastNTPResponse) / 1000;
@@ -130,44 +184,31 @@ void loop() {
       tmpRequested = false;
       //float temp = tempSensors.getTempCByIndex(0); // Get the temperature from the sensor
 
-     h = dht.readHumidity();
-      t = dht.readTemperature();
-      delay(3000);
       h = dht.readHumidity();
       t = dht.readTemperature();
-      
-
+      delay(3000);
+      h = dht.readHumidity(); // read twice to avoid nans
+      t = dht.readTemperature();
+     
       int humidity =  analogRead(0); 
       
-      String message = String(t);
-      Serial.println(message);
 
-      String message1 = String(h);
-      Serial.println(message1);
-
-  Serial.println("actualTime "+String(actualTime));
-  Serial.println("lastwater "+String(lastwater));
-  Serial.println("timediff " +String(actualTime-lastwater));
-          Serial.println("humidity "+String(humidity));
-        Serial.println("humiditylimit "+String(humiditylimit));
       if (humidity>humiditylimit && (actualTime-lastwater)>waitingtime){
-        Serial.println("humidity "+String(humidity));
-        Serial.println("humiditylimit "+String(humiditylimit));
-        Serial.println("water");
-         digitalWrite(D1, 1); 
-         delay(waterduration*250);
-         digitalWrite(D1, 0);
+        // change here when using multiple soil humidity sensors with multiple if cases testing each sensor
+         water_plants("1",waterduration);
+         
          lastwater=actualTime;
+         changeConfig("lastwater",lastwater);
         }
 
 
-      //delay(20000);
+      Serial.printf("Appending parameters to file at time: %lu, \n", actualTime);
+      Serial.println(String(humidity));
+      Serial.println(String(t));
+      Serial.println(String(h));
+      
 
-      //temp = round(temp * 100.0) / 100.0; // round temperature to 2 digits
-
-      Serial.printf("Appending temperature to file: %lu,", actualTime);
-      //Serial.println(temp);
-      File tempLog = SPIFFS.open("/temp1.csv", "a"); // Write the time and the temperature to the csv file
+      File tempLog = SPIFFS.open("/data.csv", "a"); // Write the time and the temperature to the csv file
       tempLog.print(actualTime);
       tempLog.print(',');
       tempLog.print(t);
@@ -175,7 +216,16 @@ void loop() {
       tempLog.print(h);
       tempLog.print(',');
       tempLog.println(humidity);
+      int filesize = tempLog.size();
+      Serial.println(String(filesize));
       tempLog.close();
+
+      if(filesize>1500000){
+        //remove data if file gets to big, can be done better by deleting just the oldest data
+        Serial.println("deleted data file because it was too big");
+        SPIFFS.remove("/data.csv");
+        }
+      
     }
   } else {                                    // If we didn't receive an NTP response yet, send another request
     sendNTPpacket(timeServerIP);
@@ -189,7 +239,7 @@ void loop() {
 /*__________________________________________________________SETUP_FUNCTIONS__________________________________________________________*/
 
 void startWiFi() { // Try to connect to some given access points. Then wait for a connection
-  wifiMulti.addAP("Freifunk");
+  wifiMulti.addAP("lab","magnusb1");
 
   Serial.println("Connecting");
   while (wifiMulti.run() != WL_CONNECTED) {  // Wait for the Wi-Fi to connect
@@ -248,6 +298,20 @@ void startSPIFFS() { // Start the SPIFFS and list all contents
     }
     Serial.printf("\n");
   }
+
+
+//  if (!saveConfig()) {
+//    Serial.println("Failed to save config");
+//  } else {
+//    Serial.println("Config saved");
+//  }
+
+  if (!loadConfig()) {
+    Serial.println("Failed to load config");
+  } else {
+    Serial.println("Config loaded");
+  }
+  
 }
 
 void startMDNS() { // Start the mDNS responder
@@ -382,18 +446,34 @@ void sendNTPpacket(IPAddress& address) {
   UDP.endPacket();
 }
 
+/*__________________________________________________________flowersofthings_functions__________________________________________________________*/
+
+void water_plants(String plant, int duration) {
+  if (plant == "1") {
+         //digitalWrite(D2, 1); // switch all valves
+         //digitalWrite(D3, 1); // switch all valves
+         //delay(250); //wait
+         digitalWrite(D1, 1); // turn on pump
+         delay(duration*250);
+         digitalWrite(D1, 0);
+      }
+
+if (plant == "2") {
+// add valves that have to be switched
+// add pump
+      }
+  }
+
+
 void handleWater() { 
-  Serial.println("Yep,yep");
-
-String message = "";
-
+  
 String plant = "";
 
 int duration = 0;
 
 if (server.arg("plant")== ""){     //Parameter not found
 
-message = "plant Argument not found";
+Serial.println("Argument not found");
 
 }else{     //Parameter found
 
@@ -403,7 +483,7 @@ plant = server.arg("plant");     //Gets the value of the query parameter
 
 if (server.arg("duration")== ""){     //Parameter not found
 
-message = "duration Argument not found";
+Serial.println("Argument not found");
 
 }else{     //Parameter found
 
@@ -411,20 +491,11 @@ duration = server.arg("duration").toInt();     //Gets the value of the query par
 
 }
 
-if (plant == "1") {
-         digitalWrite(D1, 1); 
-         delay(duration*250);
-         digitalWrite(D1, 0);
-      }
+water_plants(plant,duration);
 
-if (plant == "2") {
+Serial.println("manually water plant "+String(plant)+" for "+String(duration*250)+" seconds");
 
-      }
-String du = "";
-du = server.arg("duration");
-message = plant + du;
-
-server.send(200, "text/plain", message);          //Returns the HTTP response
+server.send(200, "text/plain", "OK_"+String(plant)+"_"+String(duration));          //Returns the HTTP response
 
 }
 
@@ -433,11 +504,9 @@ Serial.println("Soil");
 
 int humidity = analogRead(A0);
 
-String message = String(humidity);
+Serial.println("soil humidity requested manually "+String(humidity));
 
-Serial.println(message);
-
-server.send(200, "text/plain", message);          //Returns the HTTP response
+server.send(200, "text/plain", String(humidity));          //Returns the HTTP response
 
 }
 
@@ -446,94 +515,114 @@ Serial.println("Temp");
 
 float t = dht.readTemperature();
 
-String message = String(t);
+Serial.println("temperature requested manually "+String(t));
 
-Serial.println(message);
-
-server.send(200, "text/plain", message);          //Returns the HTTP response
+server.send(200, "text/plain", String(t));          //Returns the HTTP response
 
 }
 
 
 void handleHum() { 
-Serial.println("Hum");
 
 float h = dht.readHumidity();
 
-String message = String(h);
+Serial.println("humidity requested manually "+String(h));
 
-Serial.println(message);
-
-server.send(200, "text/plain", message);          //Returns the HTTP response
+server.send(200, "text/plain", String(h));          //Returns the HTTP response
 
 }
 
+void changeConfig(String key,int var){
+
+   File configFile = SPIFFS.open("/config.json", "r");
+  if (!configFile) {
+    Serial.println("Failed to open config file");
+  }
+
+  size_t size = configFile.size();
+  if (size > 1024) {
+    Serial.println("Config file size is too large");
+  }
+
+  // Allocate a buffer to store contents of the file.
+  std::unique_ptr<char[]> buf(new char[size]);
+
+  // We don't use String here because ArduinoJson library requires the input
+  // buffer to be mutable. If you don't use ArduinoJson, you may as well
+  // use configFile.readString instead.
+  configFile.readBytes(buf.get(), size);
+
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& json = jsonBuffer.parseObject(buf.get());
+
+  if (!json.success()) {
+    Serial.println("Failed to parse config file");
+  }
+  
+  Serial.println(key+String(var));
+  json[key] = String(var);
+
+  if (!configFile) {
+    Serial.println("Failed to open config file for writing");
+  }
+
+  SPIFFS.remove("/config.json");
+  File newconfigFile = SPIFFS.open("/config.json", "w");
+  
+  json.printTo(newconfigFile);
+
+  }
+  
 
 void handleSetHumidity() { 
 
-String message = "";
-  
 if (server.arg("humidity")== ""){     //Parameter not found
 
-message = "Argument not found";
+server.send(200, "text/plain", "Argument not found");          //Returns the HTTP response
 
 }else{     //Parameter found
 
 humiditylimit = server.arg("humidity").toInt();     //Gets the value of the query parameter
 
+changeConfig("humiditylimit",humiditylimit);
+
+server.send(200, "text/plain", "OK_"+String(humiditylimit));          //Returns the HTTP response
 }
-
-Serial.println("humiditylimit "+String(humiditylimit));
-
-server.send(200, "text/plain", message);          //Returns the HTTP response
 
 }
 
 
 void handleSetWaterDuration() { 
 
-String message = "";
+if (server.arg("duration")== ""){     //Parameter not found
 
-int duration = 0;
-
-if (server.arg("humidity")== ""){     //Parameter not found
-
-message = "duration Argument not found";
+server.send(200, "text/plain", "Argument not found");          //Returns the HTTP response
 
 }else{     //Parameter found
 
-message = server.arg("duration");
+waterduration = server.arg("duration").toInt();     //Gets the value of the query parameter
 
-waterduration = server.arg("message").toInt();     //Gets the value of the query parameter
+changeConfig("waterduration",waterduration);
+
+server.send(200, "text/plain", "OK_"+String(waterduration));          //Returns the HTTP response
+}
 
 }
 
-Serial.println("waterduration "+message);
-
-server.send(200, "text/plain", message);          //Returns the HTTP response
-
-}
 
 void handleSetWaiting() { 
 
-String message = "";
+if (server.arg("time")== ""){     //Parameter not found
 
-int duration = 0;
-
-if (server.arg("humidity")== ""){     //Parameter not found
-
-message = "duration Argument not found";
+server.send(200, "text/plain", "Argument not found");          //Returns the HTTP response
 
 }else{     //Parameter found
 
-message = server.arg("time");
+waitingtime = server.arg("time").toInt();     //Gets the value of the query parameter
 
-waitingtime = server.arg("message").toInt();     //Gets the value of the query parameter
+changeConfig("waitingtime",waitingtime);
 
+server.send(200, "text/plain", "OK_"+String(waitingtime));          //Returns the HTTP response
 }
-
-Serial.println("waitingtime "+message);
-
-server.send(200, "text/plain", message);          //Returns the HTTP response
 
 }

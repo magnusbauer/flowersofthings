@@ -45,7 +45,7 @@ function loadCSV() {
             google.charts.setOnLoadCallback(updateViewport);
         }
     };
-    xmlhttp.open("GET", "temp1.csv", true);
+    xmlhttp.open("GET", "data.csv", true);
     xmlhttp.send();
     var loadingdiv = document.getElementById("loading");
     loadingdiv.style.visibility = "visible";

@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-humidity_data = np.loadtxt("soil_data2.txt")
-
-# print(humidity_data[:,0])
+humidity_data = np.loadtxt("soil_data.txt")
 
 print humidity_data[:,0].shape
 
