@@ -76,10 +76,10 @@ bool loadConfig() {
     Serial.println("Failed to parse config file");
     return false;
   }
-  
+
   const String hl = json["humiditylimit"];
   humiditylimit = hl.toInt();
-  
+
  const String wd = json["waterduration"];
   waterduration = wd.toInt();
 
@@ -89,7 +89,7 @@ const String wt = json["waitingtime"];
 const String lw = json["lastwater"];
   lastwater = lw.toInt();
 
-  
+
   // Real world application would store these values in some variables for
   // later use.
 Serial.println("values in config.json");
@@ -106,7 +106,7 @@ void setup() {
   Serial.begin(115200);        // Start the Serial communication to send messages to the computer
   delay(10);
   Serial.println("\r\n");
-  
+
   dht.begin(); // initalize DHT
   pinMode(D1, OUTPUT); // initialize pin for pump
 
@@ -122,7 +122,7 @@ void setup() {
 
   startUDP();                  // Start listening for UDP messages to port 123
 
-  
+
 
   WiFi.hostByName(ntpServerName, timeServerIP); // Get the IP address of the NTP server
   Serial.print("Time server IP:\t");
@@ -147,7 +147,7 @@ uint32_t timeUNIX = 0;                      // The most recent timestamp receive
 
 void loop() {
 
-  
+
   unsigned long currentMillis = millis();
 
   if (currentMillis - prevNTP > intervalNTP) { // Request the time from the time server every hour
@@ -170,9 +170,9 @@ void loop() {
   if (timeUNIX != 0) {
     if (currentMillis - prevTemp > intervalTemp) {  // Every minute, request the temperature
 
-      
-      
-      
+
+
+
       //tempSensors.requestTemperatures(); // Request the temperature from the sensor (it takes some time to read it)
       tmpRequested = true;
       prevTemp = currentMillis;
@@ -189,14 +189,14 @@ void loop() {
       delay(3000);
       h = dht.readHumidity(); // read twice to avoid nans
       t = dht.readTemperature();
-     
-      int humidity =  analogRead(0); 
-      
+
+      int humidity =  analogRead(0);
+
 
       if (humidity>humiditylimit && (actualTime-lastwater)>waitingtime){
         // change here when using multiple soil humidity sensors with multiple if cases testing each sensor
          water_plants("1",waterduration);
-         
+
          lastwater=actualTime;
          changeConfig("lastwater",lastwater);
         }
@@ -206,7 +206,7 @@ void loop() {
       Serial.println(String(humidity));
       Serial.println(String(t));
       Serial.println(String(h));
-      
+
 
       File tempLog = SPIFFS.open("/data.csv", "a"); // Write the time and the temperature to the csv file
       tempLog.print(actualTime);
@@ -225,7 +225,7 @@ void loop() {
         Serial.println("deleted data file because it was too big");
         SPIFFS.remove("/data.csv");
         }
-      
+
     }
   } else {                                    // If we didn't receive an NTP response yet, send another request
     sendNTPpacket(timeServerIP);
@@ -239,7 +239,7 @@ void loop() {
 /*__________________________________________________________SETUP_FUNCTIONS__________________________________________________________*/
 
 void startWiFi() { // Try to connect to some given access points. Then wait for a connection
-  wifiMulti.addAP("lab","magnusb1");
+  wifiMulti.addAP("SSID","password");
 
   Serial.println("Connecting");
   while (wifiMulti.run() != WL_CONNECTED) {  // Wait for the Wi-Fi to connect
@@ -311,7 +311,7 @@ void startSPIFFS() { // Start the SPIFFS and list all contents
   } else {
     Serial.println("Config loaded");
   }
-  
+
 }
 
 void startMDNS() { // Start the mDNS responder
@@ -333,7 +333,7 @@ void startServer() { // Start a HTTP server with a file read handler and an uplo
     server.on("/setwaterduration", handleSetWaterDuration);
     server.on("/setwaiting", handleSetWaiting);
     server.on("/sethumidity", handleSetHumidity);
-    
+
 
   server.onNotFound(handleNotFound);          // if someone requests any other file or page, go to function 'handleNotFound'
   // and check if the file exists
@@ -465,8 +465,8 @@ if (plant == "2") {
   }
 
 
-void handleWater() { 
-  
+void handleWater() {
+
 String plant = "";
 
 int duration = 0;
@@ -499,7 +499,7 @@ server.send(200, "text/plain", "OK_"+String(plant)+"_"+String(duration));       
 
 }
 
-void handleSoil() { 
+void handleSoil() {
 Serial.println("Soil");
 
 int humidity = analogRead(A0);
@@ -510,7 +510,7 @@ server.send(200, "text/plain", String(humidity));          //Returns the HTTP re
 
 }
 
-void handleTemp() { 
+void handleTemp() {
 Serial.println("Temp");
 
 float t = dht.readTemperature();
@@ -522,7 +522,7 @@ server.send(200, "text/plain", String(t));          //Returns the HTTP response
 }
 
 
-void handleHum() { 
+void handleHum() {
 
 float h = dht.readHumidity();
 
@@ -558,7 +558,7 @@ void changeConfig(String key,int var){
   if (!json.success()) {
     Serial.println("Failed to parse config file");
   }
-  
+
   Serial.println(key+String(var));
   json[key] = String(var);
 
@@ -568,13 +568,13 @@ void changeConfig(String key,int var){
 
   SPIFFS.remove("/config.json");
   File newconfigFile = SPIFFS.open("/config.json", "w");
-  
+
   json.printTo(newconfigFile);
 
   }
-  
 
-void handleSetHumidity() { 
+
+void handleSetHumidity() {
 
 if (server.arg("humidity")== ""){     //Parameter not found
 
@@ -592,7 +592,7 @@ server.send(200, "text/plain", "OK_"+String(humiditylimit));          //Returns 
 }
 
 
-void handleSetWaterDuration() { 
+void handleSetWaterDuration() {
 
 if (server.arg("duration")== ""){     //Parameter not found
 
@@ -610,7 +610,7 @@ server.send(200, "text/plain", "OK_"+String(waterduration));          //Returns 
 }
 
 
-void handleSetWaiting() { 
+void handleSetWaiting() {
 
 if (server.arg("time")== ""){     //Parameter not found
 
